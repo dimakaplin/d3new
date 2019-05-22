@@ -3,6 +3,10 @@ import logo from './logo.svg';
 import './App.css';
 import * as d3 from "d3";
 
+import SVGtoPDF from "svg-to-pdfkit";
+const PDFDocument = require('pdfkit');
+
+
 const options = {
     year: 'numeric',
     month: 'numeric',
@@ -88,7 +92,16 @@ class App extends Component {
                 let real = data.real.slice(startIndex, endIndex + 1);
                 data = {name: data.name, steps: steps, real: real};
                 this.createChart(data, true);
+
+
+
+
             });
+    }
+
+    svgTOpdf = () => {
+        const doc = new PDFDocument;
+
     }
 
     changeBuild = (e) => {
@@ -96,9 +109,15 @@ class App extends Component {
         let name = e.target.value;
         let index = this.state.allData.indexOf(name)
         console.log(dataCustom[index]);
-        this.setState(()=> ({data: dataCustom[index]}), ()=> {
-            this.updateSVG();
-        });
+        this.setState(()=> ({data: dataCustom[index], start: dataCustom[index].steps[0].date, end: dataCustom[index].steps[dataCustom[index].steps.length-1].date}),
+            ()=> {
+            let data = this.state.data;
+                let years = data.steps.map((d)=> {
+                    return d.date;
+                });
+                this.setState({years: years});
+
+            });
     }
 
     updateSVG = () => {
@@ -110,23 +129,32 @@ class App extends Component {
     createSVG = () => {
         let data = this.state.data;
         console.log(data);
-        this.setState(()=>({start: data.steps[0].date, end: data.steps[data.steps.length-1].date}),
-            ()=> {
-
                 let years = data.steps.map((d)=> {
                     return d.date;
                 });
-                let namesArr = dataCustom.map((d)=> {
-                    return d.name;
-                })
                 // this.setState({years: years, allData: namesArr});
                 let startIndex = years.indexOf(this.state.start);
                 let endIndex = years.indexOf(this.state.end);
                 let steps = data.steps.slice(startIndex, endIndex + 1);
                 let real = data.real.slice(startIndex, endIndex + 1);
+                console.log(this.state.start);
                 data = {name: data.name, steps: steps, real: real};
                 this.createChart(data, true);
-            });
+
+    }
+
+    changeInterval = (e) => {
+        let id = e.target.id;
+        let value = e.target.value;
+        console.log(value)
+        switch(id) {
+            case "start":
+                this.setState({start: value});
+                break;
+            case "end":
+                this.setState({end: value});
+                break;
+        }
     }
 
     deleteSVG = ()=> {
@@ -646,12 +674,12 @@ class App extends Component {
             <div>
             <div id={"info"}>
             </div>
-                <select value = {this.state.start}>
+                <select onChange = {this.changeInterval} value = {this.state.start} id = "start">
                     {this.state.years.map((d, i)=> {
                         return <option>{d}</option>
                     })}
                 </select>
-                <select value = {this.state.end}>
+                <select onChange = {this.changeInterval} value = {this.state.end} id = "end">
                     {this.state.years.map((d, i)=> {
                         return <option>{d}</option>
                     })}
@@ -661,6 +689,8 @@ class App extends Component {
                         return <option>{d}</option>
                     })}
                 </select>
+                <button onClick = {this.updateSVG}>update chart</button>
+                <button onClick = {this.svgTOpdf}>save</button>
             </div>
         );
     }
