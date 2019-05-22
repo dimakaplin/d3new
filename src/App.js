@@ -2,9 +2,11 @@ import React, {Component} from 'react';
 import logo from './logo.svg';
 import './App.css';
 import * as d3 from "d3";
+import jsPDF from "jspdf"
+import canvg from "canvg";
+import {Button, Col, Container, Form, Row} from "react-bootstrap";
 
-import SVGtoPDF from "svg-to-pdfkit";
-const PDFDocument = require('pdfkit');
+
 
 
 const options = {
@@ -40,7 +42,7 @@ const dataCustom = [{
     {
         name: "ExBuild2",
         steps: [
-            {date: "2017-10-17", step: "монтаж1"},
+            {date: "2017-3-17", step: "монтаж1"},
             {date: "2018-11-18", step: "монтаж2"},
             {date: "2019-05-19", step: "монтаж3"},
             {date: "2020-5-20", step: "монтаж4"},
@@ -51,7 +53,7 @@ const dataCustom = [{
         ],
         real: [
 
-            {date: "2017-10-17", step: "монтаж1", status: "done"},
+            {date: "2017-3-17", step: "монтаж1", status: "done"},
             {date: "2018-12-18", step: "монтаж2", status: "bad"},
             {date: "2019-05-19", step: "монтаж3", status: "done"},
             {date: "2020-5-20", step: "монтаж4", status: "plan"},
@@ -73,23 +75,29 @@ class App extends Component {
         data: [],
         years: [],
         allData: [],
+        rangeValid: true,
     }
 
     componentDidMount() {
-        this.setState(()=>({data: dataCustom[0], start: dataCustom[0].steps[0].date, end: dataCustom[0].steps[dataCustom[0].steps.length-1].date}),
+        this.setState(()=>({data: dataCustom[0], start: dataCustom[0].steps[0].date.substring(0,4), end: dataCustom[0].steps[dataCustom[0].steps.length-1].date.substring(0,4)}),
             ()=> {
                 let data = this.state.data;
-                let years = data.steps.map((d)=> {
-                    return d.date;
+                let years = [];
+                data.steps.forEach((d)=> {
+                    let year = d.date.substring(0,4);
+                    if(!years.includes(year)) {
+                        years.push(year);
+                    }
                 });
                 let namesArr = dataCustom.map((d)=> {
                     return d.name;
                 })
                 this.setState({years: years, allData: namesArr});
-                let startIndex = years.indexOf(this.state.start);
-                let endIndex = years.indexOf(this.state.end);
-                let steps = data.steps.slice(startIndex, endIndex + 1);
-                let real = data.real.slice(startIndex, endIndex + 1);
+                let startIndex = this.finedIndexes(data.steps, this.state.start); // years.indexOf(this.state.start);
+
+                let endIndex = this.finedIndexes(data.real, this.state.end); // years.indexOf(this.state.end);
+                let steps = data.steps.slice(startIndex[0], endIndex[endIndex.length-1] + 1);
+                let real = data.real.slice(startIndex[0], endIndex[endIndex.length-1] + 1);
                 data = {name: data.name, steps: steps, real: real};
                 this.createChart(data, true);
 
@@ -100,20 +108,47 @@ class App extends Component {
     }
 
     svgTOpdf = () => {
-        const doc = new PDFDocument;
+        var doc = new jsPDF('p', 'pt', 'a4');
+        let svg = document.querySelector("svg").innerHTML;
 
-    }
+ /*       if (svg) {
+            svg = svg.replace(/\r?\n|\r/g, '').trim();
+        }*/
+
+        var canvas = document.createElement('canvas');
+        canvas.setAttribute('width', "1200");
+        canvas.setAttribute('height', "500");
+        canvg(canvas, svg);
+        var imgData = canvas.toDataURL('image/png');
+        doc.addImage(imgData, 'PNG',16, 30, 1100 / 2, 500 / 2);
+        doc.save(`${this.state.data.name}-from-${this.state.start}-to-${this.state.end}.pdf`);
+
+
+/*        svg.setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns', 'http://www.w3.org/2000/svg');
+        svg.setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:xlink', 'http://www.w3.org/1999/xlink');
+            var svgAsText = new XMLSerializer().serializeToString(svg);
+            doc.addSvgAsImage(svg, 20, 20, 20, 20);
+
+            // Save the PDF*/
+         //   doc.save('TestSVG.pdf');
+
+
+    };
 
     changeBuild = (e) => {
-        console.log(e.target.value);
+
         let name = e.target.value;
-        let index = this.state.allData.indexOf(name)
+        let index = this.state.allData.indexOf(name);
         console.log(dataCustom[index]);
-        this.setState(()=> ({data: dataCustom[index], start: dataCustom[index].steps[0].date, end: dataCustom[index].steps[dataCustom[index].steps.length-1].date}),
+        this.setState(()=> ({data: dataCustom[index], start: dataCustom[index].steps[0].date.substring(0,4), end: dataCustom[index].steps[dataCustom[index].steps.length-1].date.substring(0,4)}),
             ()=> {
             let data = this.state.data;
-                let years = data.steps.map((d)=> {
-                    return d.date;
+                let years = [];
+                data.steps.forEach((d)=> {
+                    let year = d.date.substring(0,4);
+                    if(!years.includes(year)) {
+                        years.push(year);
+                    }
                 });
                 this.setState({years: years});
 
@@ -129,44 +164,69 @@ class App extends Component {
     createSVG = () => {
         let data = this.state.data;
         console.log(data);
-                let years = data.steps.map((d)=> {
+/*                let years = data.steps.map((d)=> {
                     return d.date;
-                });
+                });*/
                 // this.setState({years: years, allData: namesArr});
-                let startIndex = years.indexOf(this.state.start);
-                let endIndex = years.indexOf(this.state.end);
-                let steps = data.steps.slice(startIndex, endIndex + 1);
-                let real = data.real.slice(startIndex, endIndex + 1);
-                console.log(this.state.start);
+                let startIndex = this.finedIndexes(data.steps, this.state.start); // years.indexOf(this.state.start);
+        console.log(data.steps)
+        console.log(this.state.start)
+                let endIndex = this.finedIndexes(data.real, this.state.end); // years.indexOf(this.state.end);
+                let steps = data.steps.slice(startIndex[0], endIndex[endIndex.length-1] + 1);
+                let real = data.real.slice(startIndex[0], endIndex[endIndex.length-1] + 1);
+
+
                 data = {name: data.name, steps: steps, real: real};
                 this.createChart(data, true);
 
+    };
+
+    finedIndexes = (data, year) => {
+        let indexes = [];
+        data.forEach((d, i) => {
+            if(+d.date.substring(0,4) === +year) {
+                indexes.push(i);
+            }
+        })
+        return indexes;
     }
 
     changeInterval = (e) => {
         let id = e.target.id;
         let value = e.target.value;
-        console.log(value)
+
         switch(id) {
             case "start":
-                this.setState({start: value});
+                this.setState(()=>({start: value}), ()=> {
+                    if(+this.state.start >= +this.state.end) {
+                        this.setState({rangeValid: false})
+                    } else {
+                        this.setState({rangeValid: true})
+                    }
+            });
                 break;
             case "end":
-                this.setState({end: value});
+                this.setState(()=>({end: value}), ()=> {
+                    if(+this.state.start >= +this.state.end) {
+                        this.setState({rangeValid: false})
+                    } else {
+                        this.setState({rangeValid: true})
+                    }
+                });
                 break;
         }
-    }
+    };
 
     deleteSVG = ()=> {
         document.querySelector('svg').remove();
-    }
+    };
 
     createChart = (obj, withLegend) => {
         console.log(obj);
         let dataPlan = obj.steps;
         // console.log(data.steps[0].date);
 
-        let margin = {top: 10, right: 30, bottom: 30, left: 60},
+        let margin = {top: 10, right: 0, bottom: 30, left: 0},
             width = 1200 - margin.left - margin.right,
             gridHeight = 250,
             titleHeight = 30,
@@ -177,8 +237,8 @@ class App extends Component {
 
         let svg = d3.select("#info")
             .append("svg")
-            .attr("width", 1500)
-            .attr("height", 500)
+            .attr("width", 1230)
+            .attr("height", 350)
             .append("g")
             .attr("transform",
                 "translate(" + margin.left + "," + margin.top + ")");
@@ -216,7 +276,7 @@ class App extends Component {
                 .attr("height", 14)
                 .attr("width", 14)
                 .attr("fill", (d, i) => {
-                    console.log(d);
+
                     if (d.status === "done") {
                         return "#00ab4f";
                     } else if (d.status === "bad") {
@@ -313,7 +373,7 @@ class App extends Component {
         dataPlan.unshift({date: emptyFirstDate});
 
 
-        console.log(dataPlan);
+
 
         let x = d3.scaleTime()
             .domain(d3.extent(dataPlan, function (d) {
@@ -336,14 +396,14 @@ class App extends Component {
 
         dataPlan.forEach((d) => {
             let year = d.date.getFullYear();
-            console.log(year);
+
             if (!yearsArr.includes(year)) {
                 yearsArr.push(year);
             }
 
         });
 
-        console.log(yearsArr);
+
 
 
         let titles = svg.append("g");
@@ -441,7 +501,7 @@ class App extends Component {
 
         rectsData.splice(0, 2);
         rectsData.splice(rectsData.length - 1, 1);
-        console.log(rectsData);
+
 
         rectsData.forEach((item, i) => {
             let line = svg.append("g");
@@ -524,7 +584,7 @@ class App extends Component {
             .text((d) => d.step)
 
 
-        console.log(rectsData);
+
 
         let realLine = svg.append("g");
 
@@ -553,7 +613,7 @@ class App extends Component {
             .attr("height", 14)
             .attr("width", 14)
             .attr("fill", (d, i) => {
-                console.log(d);
+
                 if (d.status === "done") {
                     return "#00ab4f";
                 } else if (d.status === "bad") {
@@ -671,27 +731,47 @@ class App extends Component {
 
     render() {
         return (
-            <div>
+            <Container>
+
+                <Col md = {12}>
             <div id={"info"}>
             </div>
-                <select onChange = {this.changeInterval} value = {this.state.start} id = "start">
+                    <Row>
+                    <Col md={2}>
+                    <Form.Label>Начало периода</Form.Label>
+                <Form.Control as="select" onChange = {this.changeInterval} value = {this.state.start} id = "start">
                     {this.state.years.map((d, i)=> {
                         return <option>{d}</option>
                     })}
-                </select>
-                <select onChange = {this.changeInterval} value = {this.state.end} id = "end">
+                </Form.Control>
+                    </Col>
+                    <Col md={2}>
+                        <Form.Label>Конец периода</Form.Label>
+                <Form.Control as="select" onChange = {this.changeInterval} value = {this.state.end} id = "end">
                     {this.state.years.map((d, i)=> {
                         return <option>{d}</option>
                     })}
-                </select>
-                <select onChange={this.changeBuild} value = {this.state.data.name}>
+                </Form.Control>
+                    </Col>
+                        <Col md={4}>
+                            <Form.Label>Наименование объекта</Form.Label>
+                <Form.Control as="select" onChange={this.changeBuild} value = {this.state.data.name}>
                     {this.state.allData.map((d, i)=> {
                         return <option>{d}</option>
                     })}
-                </select>
-                <button onClick = {this.updateSVG}>update chart</button>
-                <button onClick = {this.svgTOpdf}>save</button>
-            </div>
+
+                </Form.Control>
+                        </Col>
+                        <Col md={2} className = "d-flex align-items-end">
+                <Button disabled ={!this.state.rangeValid} block className = {"align-bottom"} onClick = {this.updateSVG}>обновить</Button>
+                        </Col>
+                        <Col className = "d-flex align-items-end" md = {2}>
+                <Button block onClick = {this.svgTOpdf}>сохранить</Button>
+                        </Col>
+                    </Row>
+                </Col>
+
+            </Container>
         );
     }
 }
