@@ -1,5 +1,4 @@
 import React, {Component} from 'react';
-import logo from './logo.svg';
 import './App.css';
 import * as d3 from "d3";
 import jsPDF from "jspdf"
@@ -166,7 +165,7 @@ class App extends Component {
     }
 
     svgToPdf = () => {
-        let doc = new jsPDF('p', 'pt', 'a4');
+        let doc = new jsPDF('landscape', 'pt', 'a4');
         let canvas = document.createElement('canvas');
         canvas.setAttribute('width', "1200");
         canvas.setAttribute('height', "1000");
@@ -178,14 +177,15 @@ class App extends Component {
             canvg(canvas, d.innerHTML);
             let image = canvas.toDataURL('image/png');
             if (i === 0) {
-                doc.addImage(image, 'PNG', 20, 30, 1100 / 2, 500);
+                doc.addImage(image, 'PNG', 20, 30, 800, 600);
             } else if (i === 1) {
-                doc.addImage(image, 'PNG', 20, 50, 1100 / 2, 500);
+                doc.addImage(image, 'PNG', 20, 60, 800, 600);
             } else {
-                doc.addImage(image, 'PNG', 20, 160, 1100 / 2, 500);
+                doc.addImage(image, 'PNG', 20, 190, 800, 600);
             }
 
         });
+
         doc.save('build-plan.pdf');
 
 
@@ -719,7 +719,7 @@ class App extends Component {
                 }
             })
             .attr("y", (d, i) => {
-                let thisCoordsY = planLineY - 25;
+                let thisCoordsY = planLineY - 29;
                 if (i < planTicksData.length - 1 && x(planTicksData[i + 1].date) - x(d.date) < 70) {
                     return thisCoordsY - 5;
                 } else {
@@ -777,10 +777,10 @@ class App extends Component {
             })
             .attr("stroke-width", 2);
 
-        realTicks.selectAll(".plan-date")
+        realTicks.selectAll(".real-date")
             .data(realData).enter()
             .append("text")
-            .attr("class", "plan-date")
+            .attr("class", "real-date")
             .attr("x", (d, i) => {
                 let thisCoordsX = x(d.date);
                 if (i < realData.length - 1 && x(realData[i + 1].date) - thisCoordsX < 70) {
@@ -790,9 +790,9 @@ class App extends Component {
                 }
             })
             .attr("y", (d, i) => {
-                let thisCoordsY = realLineY + 33;
+                let thisCoordsY = realLineY + 38;
                 if (i < realData.length - 1 && x(realData[i + 1].date) - x(d.date) < 70) {
-                    return thisCoordsY + 10;
+                    return thisCoordsY + 5;
                 } else {
                     return thisCoordsY;
                 }
@@ -801,10 +801,10 @@ class App extends Component {
             .attr("font-size", 10)
             .text((d) => d.date.toLocaleString("ru", options))
 
-        realTicks.selectAll(".plan-name")
+        realTicks.selectAll(".real-name")
             .data(realData).enter()
             .append("text")
-            .attr("class", "plan-name")
+            .attr("class", "real-name")
             .attr("x", (d, i) => {
                 let thisCoordsX = x(d.date);
                 if (i < realData.length - 1 && x(realData[i + 1].date) - thisCoordsX < 70) {
@@ -816,7 +816,7 @@ class App extends Component {
             .attr("y", (d, i) => {
                 let thisCoordsY = realLineY + 23;
                 if (i < realData.length - 1 && x(realData[i + 1].date) - x(d.date) < 70) {
-                    return thisCoordsY + 10;
+                    return thisCoordsY + 5;
                 } else {
                     return thisCoordsY;
                 }
